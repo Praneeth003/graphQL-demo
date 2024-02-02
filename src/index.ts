@@ -1,5 +1,13 @@
 import { ApolloServer } from '@apollo/server';
-import { startStandaloneServer } from '@apollo/server/standalone';
+import express from 'express';
+import { expressMiddleware } from '@apollo/server/express4';
+import cors from 'cors';
+import http from 'http';
+import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
+
+
+const app = express();
+
 
 const typeDefs = `#graphql
   # Comments in GraphQL strings (such as this one) start with the hash (#) symbol.
@@ -35,10 +43,28 @@ const resolvers = {
     },
     };
 
-const server = new ApolloServer({ typeDefs, resolvers });
+const httpServer = http.createServer(app);
 
-const { url } = await startStandaloneServer(server, {
-  listen: { port: 4000 },
+const server = new ApolloServer({
+  typeDefs,
+  resolvers,
+  plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
 });
 
-console.log(`🚀  Server ready at: ${url}`);
+await server.start();
+
+app.use(
+  '/',
+  cors(),
+  express.json(),
+  // expressMiddleware accepts the same arguments:
+  // an Apollo Server instance and optional configuration options
+  expressMiddleware(server, {
+    context: async ({ req }) => ({ token: req.headers.token }),
+  }),
+);
+
+await new Promise<void>((resolve) => httpServer.listen({ port: 4000 }, () => resolve()));
+
+console.log(`🚀 Server ready at http://localhost:4000`);
+
