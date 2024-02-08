@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "compile": "tsc",
+    "build": "tsc && copyfiles -u 1 src/**/*.js dist",
     "start": "npm run compile && node ./dist/index.js"
   },
   "author": "",
